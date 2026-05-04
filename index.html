@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가계부</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: #F0F2F5;
+  color: #1E293B;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+header {
+  background: #3B82F6;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+header h1 { color: #fff; font-size: 17px; font-weight: 700; }
+#hdr-sum { color: #BFDBFE; font-size: 13px; }
+
+/* ── Main layout ─────────────────────────────────────────── */
+.main {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  padding: 14px;
+  min-height: 0;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #DDE1E7;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Calendar panel ──────────────────────────────────────── */
+.cal-panel { flex: 1; min-width: 0; }
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.cal-nav button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #1E293B;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s;
+}
+.cal-nav button:hover { background: #F0F2F5; }
+#month-label { font-size: 15px; font-weight: 700; flex: 1; text-align: center; }
+.btn-today {
+  background: #3B82F6 !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 5px 12px !important;
+  border-radius: 6px !important;
+}
+.btn-today:hover { background: #2563EB !important; }
+
+.dow-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 0 10px;
+  flex-shrink: 0;
+}
+.dow-row span {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+  padding: 4px 0;
+}
+.dow-row span:first-child { color: #EF4444; }
+.dow-row span:last-child  { color: #3B82F6; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 3px;
+  padding: 0 10px 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.day-cell {
+  border: 1px solid #DDE1E7;
+  border-radius: 8px;
+  padding: 5px 6px 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: background .12s;
+  min-height: 0;
+  overflow: hidden;
+}
+.day-cell:hover { background: #DBEAFE; }
+.day-cell.today { background: #FEF9C3; }
+.day-cell.selected {
+  background: #3B82F6 !important;
+  border-color: #2563EB;
+}
+
+.day-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1E293B;
+  line-height: 1;
+}
+.day-cell.selected .day-num { color: #fff; }
+.day-cell.sun .day-num { color: #EF4444; }
+.day-cell.sat .day-num { color: #3B82F6; }
+.day-cell.selected .day-num { color: #fff !important; }
+
+.day-amounts {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.day-amounts span { font-size: 9px; font-weight: 700; line-height: 1.2; }
+.day-amounts .amt-소비 { color: #EF4444; }
+.day-amounts .amt-저축 { color: #10B981; }
+.day-cell.selected .amt-소비 { color: #FCA5A5; }
+.day-cell.selected .amt-저축 { color: #6EE7B7; }
+
+/* ── Detail panel ────────────────────────────────────────── */
+.detail-panel {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.det-header { padding: 16px 18px 0; flex-shrink: 0; }
+.det-date { font-size: 14px; font-weight: 700; }
+.det-sum { font-size: 12px; color: #94A3B8; margin-top: 3px; min-height: 18px; }
+
+.divider { border: none; border-top: 1px solid #DDE1E7; margin: 12px 18px; flex-shrink: 0; }
+
+.tx-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 18px;
+  min-height: 0;
+}
+.tx-empty { color: #94A3B8; font-size: 13px; text-align: center; padding: 24px 0; }
+
+.tx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #F8FAFC;
+  border: 1px solid #DDE1E7;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.tx-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.badge-소비 { background: #EF4444; }
+.badge-저축 { background: #10B981; }
+.tx-desc { font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx-amount { font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.tx-amount.소비 { color: #EF4444; }
+.tx-amount.저축 { color: #10B981; }
+.tx-del {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #CBD5E1;
+  font-size: 13px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  transition: color .15s;
+}
+.tx-del:hover { color: #EF4444; }
+
+/* ── Add form ────────────────────────────────────────────── */
+.add-form {
+  padding: 0 18px 18px;
+  flex-shrink: 0;
+}
+.add-form-title { font-size: 12px; font-weight: 700; margin-bottom: 10px; }
+
+.type-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+.type-btn {
+  flex: 1;
+  padding: 7px;
+  border: 1.5px solid #DDE1E7;
+  border-radius: 7px;
+  background: #fff;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #94A3B8;
+  transition: all .15s;
+}
+.type-btn.active-소비 { background: #EF4444; border-color: #EF4444; color: #fff; }
+.type-btn.active-저축 { background: #10B981; border-color: #10B981; color: #fff; }
+
+.form-label { font-size: 11px; color: #94A3B8; margin-bottom: 4px; }
+.form-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #DDE1E7;
+  border-radius: 7px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13px;
+  color: #1E293B;
+  outline: none;
+  transition: border-color .15s;
+  margin-bottom: 8px;
+}
+.form-input:focus { border-color: #3B82F6; }
+
+.btn-add {
+  width: 100%;
+  padding: 10px;
+  background: #3B82F6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s;
+  margin-top: 2px;
+}
+.btn-add:hover { background: #2563EB; }
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+.tx-list::-webkit-scrollbar { width: 4px; }
+.tx-list::-webkit-scrollbar-track { background: transparent; }
+.tx-list::-webkit-scrollbar-thumb { background: #DDE1E7; border-radius: 4px; }
+
+/* ── Mobile ──────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  body { overflow: auto; }
+  .main { flex-direction: column; overflow: auto; height: auto; }
+  .cal-panel { min-height: 420px; }
+  .detail-panel { width: 100%; min-height: 480px; }
+  .cal-grid { grid-auto-rows: 60px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>가계부</h1>
+  <span id="hdr-sum"></span>
+</header>
+
+<div class="main">
+  <!-- Calendar -->
+  <div class="panel cal-panel">
+    <div class="cal-nav">
+      <button id="btn-prev">&#9664;</button>
+      <span id="month-label"></span>
+      <button id="btn-next">&#9654;</button>
+      <button class="btn-today" id="btn-today">오늘</button>
+    </div>
+    <div class="dow-row">
+      <span>일</span><span>월</span><span>화</span>
+      <span>수</span><span>목</span><span>금</span><span>토</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <!-- Detail -->
+  <div class="panel detail-panel">
+    <div class="det-header">
+      <div class="det-date" id="det-date">날짜를 선택하세요</div>
+      <div class="det-sum" id="det-sum"></div>
+    </div>
+    <hr class="divider">
+    <div class="tx-list" id="tx-list"></div>
+    <hr class="divider">
+    <div class="add-form">
+      <div class="add-form-title">새 항목 추가</div>
+      <div class="type-toggle">
+        <button class="type-btn active-소비" id="btn-소비" onclick="setType('소비')">소비</button>
+        <button class="type-btn" id="btn-저축" onclick="setType('저축')">저축</button>
+      </div>
+      <div class="form-label">내용</div>
+      <input class="form-input" id="inp-desc" type="text" placeholder="예: 점심 식사"
+             onkeydown="if(event.key==='Enter') document.getElementById('inp-amount').focus()">
+      <div class="form-label">금액 (원)</div>
+      <input class="form-input" id="inp-amount" type="number" min="1" placeholder="예: 15000"
+             onkeydown="if(event.key==='Enter') addTransaction()">
+      <button class="btn-add" onclick="addTransaction()">＋ 추가하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KO_DOW = ['일','월','화','수','목','금','토'];
+
+// ── Data ────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch('/api/data');
+    if (res.ok) return await res.json();
+  } catch {
+    document.getElementById('det-date').textContent = '⚠ 서버에 연결할 수 없습니다. python server.py 를 실행하세요.';
+  }
+  return { transactions: [] };
+}
+function saveData(data) {
+  fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).catch(console.error);
+}
+function genId() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+
+// ── State ────────────────────────────────────────────────────────────────
+let data = { transactions: [] };
+const now = new Date();
+let curYear  = now.getFullYear();
+let curMonth = now.getMonth() + 1;
+let selected = fmt(now.getFullYear(), now.getMonth() + 1, now.getDate());
+let txType   = '소비';
+
+function fmt(y, m, d) {
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function todayStr() {
+  return fmt(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
+// ── Summary helpers ──────────────────────────────────────────────────────
+function daySum(dateStr) {
+  const txs = data.transactions.filter(t => t.date === dateStr);
+  return {
+    소비: txs.filter(t => t.type === '소비').reduce((s, t) => s + t.amount, 0),
+    저축: txs.filter(t => t.type === '저축').reduce((s, t) => s + t.amount, 0),
+  };
+}
+function monthSum() {
+  const prefix = `${curYear}-${String(curMonth).padStart(2,'0')}-`;
+  const txs = data.transactions.filter(t => t.date.startsWith(prefix));
+  return {
+    소비: txs.filter(t => t.type === '소비').reduce((s, t) => s + t.amount, 0),
+    저축: txs.filter(t => t.type === '저축').reduce((s, t) => s + t.amount, 0),
+  };
+}
+function comma(n) { return n.toLocaleString('ko-KR'); }
+
+// ── Calendar ─────────────────────────────────────────────────────────────
+function renderCalendar() {
+  document.getElementById('month-label').textContent = `${curYear}년 ${curMonth}월`;
+
+  const ms = monthSum();
+  const parts = [];
+  if (ms.소비) parts.push(`소비 -${comma(ms.소비)}원`);
+  if (ms.저축) parts.push(`저축 +${comma(ms.저축)}원`);
+  document.getElementById('hdr-sum').textContent = parts.join('  |  ');
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  const firstDow = new Date(curYear, curMonth - 1, 1).getDay();
+  const daysInMonth = new Date(curYear, curMonth, 0).getDate();
+  const today = todayStr();
+
+  // blank cells
+  for (let i = 0; i < firstDow; i++) {
+    grid.appendChild(document.createElement('div'));
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = fmt(curYear, curMonth, d);
+    const dow = new Date(curYear, curMonth - 1, d).getDay();
+    const isSel   = dateStr === selected;
+    const isToday = dateStr === today;
+
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' +
+      (isSel ? ' selected' : isToday ? ' today' : '') +
+      (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '');
+    cell.onclick = () => selectDate(dateStr);
+
+    const num = document.createElement('div');
+    num.className = 'day-num';
+    num.textContent = d;
+    cell.appendChild(num);
+
+    const { 소비, 저축 } = daySum(dateStr);
+    if (소비 || 저축) {
+      const amts = document.createElement('div');
+      amts.className = 'day-amounts';
+      if (소비) {
+        const s = document.createElement('span');
+        s.className = 'amt-소비';
+        s.textContent = `-${comma(소비)}`;
+        amts.appendChild(s);
+      }
+      if (저축) {
+        const s = document.createElement('span');
+        s.className = 'amt-저축';
+        s.textContent = `+${comma(저축)}`;
+        amts.appendChild(s);
+      }
+      cell.appendChild(amts);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// ── Detail ───────────────────────────────────────────────────────────────
+function renderDetail() {
+  if (!selected) return;
+
+  const [y, m, d] = selected.split('-').map(Number);
+  const dowIdx = new Date(y, m - 1, d).getDay();
+  document.getElementById('det-date').textContent =
+    `${y}년 ${m}월 ${d}일 (${KO_DOW[dowIdx]})`;
+
+  const { 소비, 저축 } = daySum(selected);
+  const parts = [];
+  if (소비) parts.push(`소비 -${comma(소비)}원`);
+  if (저축) parts.push(`저축 +${comma(저축)}원`);
+  document.getElementById('det-sum').textContent = parts.join('  |  ') || '내역 없음';
+
+  const list = document.getElementById('tx-list');
+  list.innerHTML = '';
+
+  const txs = data.transactions
+    .filter(t => t.date === selected)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  if (!txs.length) {
+    list.innerHTML = '<div class="tx-empty">이 날의 내역이 없습니다.</div>';
+    return;
+  }
+
+  txs.forEach(tx => {
+    const sign = tx.type === '소비' ? '-' : '+';
+    const item = document.createElement('div');
+    item.className = 'tx-item';
+    item.innerHTML = `
+      <span class="tx-badge badge-${tx.type}">${tx.type}</span>
+      <span class="tx-desc" title="${tx.description}">${tx.description}</span>
+      <span class="tx-amount ${tx.type}">${sign}${comma(tx.amount)}원</span>
+      <button class="tx-del" title="삭제" onclick="deleteTransaction('${tx.id}')">✕</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────
+function selectDate(dateStr) {
+  selected = dateStr;
+  renderCalendar();
+  renderDetail();
+}
+
+function setType(t) {
+  txType = t;
+  document.getElementById('btn-소비').className =
+    'type-btn' + (t === '소비' ? ' active-소비' : '');
+  document.getElementById('btn-저축').className =
+    'type-btn' + (t === '저축' ? ' active-저축' : '');
+}
+
+function addTransaction() {
+  const desc   = document.getElementById('inp-desc').value.trim();
+  const rawAmt = document.getElementById('inp-amount').value.trim();
+
+  if (!desc) {
+    alert('내용을 입력하세요.');
+    document.getElementById('inp-desc').focus();
+    return;
+  }
+  const amount = parseInt(rawAmt, 10);
+  if (!amount || amount <= 0) {
+    alert('올바른 금액을 입력하세요. (양의 정수)');
+    document.getElementById('inp-amount').focus();
+    return;
+  }
+
+  data.transactions.push({
+    id: genId(),
+    date: selected,
+    type: txType,
+    amount,
+    description: desc,
+    created_at: new Date().toISOString(),
+  });
+  saveData(data);
+
+  document.getElementById('inp-desc').value = '';
+  document.getElementById('inp-amount').value = '';
+  document.getElementById('inp-desc').focus();
+
+  renderCalendar();
+  renderDetail();
+}
+
+function deleteTransaction(id) {
+  if (!confirm('이 항목을 삭제하시겠습니까?')) return;
+  data.transactions = data.transactions.filter(t => t.id !== id);
+  saveData(data);
+  renderCalendar();
+  renderDetail();
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────
+document.getElementById('btn-prev').onclick = () => {
+  if (curMonth === 1) { curMonth = 12; curYear--; }
+  else curMonth--;
+  renderCalendar();
+};
+document.getElementById('btn-next').onclick = () => {
+  if (curMonth === 12) { curMonth = 1; curYear++; }
+  else curMonth++;
+  renderCalendar();
+};
+document.getElementById('btn-today').onclick = () => {
+  curYear  = now.getFullYear();
+  curMonth = now.getMonth() + 1;
+  selected = todayStr();
+  renderCalendar();
+  renderDetail();
+};
+
+// ── Init ─────────────────────────────────────────────────────────────────
+(async () => {
+  data = await loadData();
+  renderCalendar();
+  renderDetail();
+})();
+</script>
+</body>
+</html>
